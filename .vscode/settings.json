@@ -1,0 +1,14 @@
+{
+    "python.defaultInterpreterPath": "c:\\Users\\Sai sidharth\\social\\social\\Scripts\\python.exe",
+    "python.analysis.extraPaths": [
+        "c:\\Users\\Sai sidharth\\social\\socialproject"
+    ],
+    "python.interpreter.infoVisibility": "always",
+    "python.languageServer": "Pylance",
+    "python.analysis.typeCheckingMode": "basic",
+    "python-envs.defaultEnvManager": "ms-python.python:venv",
+    "python-envs.workspaceSearchPaths": [
+        "./**/.venv",
+        "c:\\Users\\Sai sidharth\\social"
+    ]
+}

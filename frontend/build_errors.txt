@@ -1,0 +1,73 @@
+[36mvite v8.0.1 [32mbuilding client environment for production...[36m[39m
+[2Ktransforming...✓ 2336 modules transformed.
+[33m[lightningcss minify] Unknown at rule: @tailwind
+1  |  @tailwind base;
+   |           ^
+2  |  @tailwind components;
+3  |  @tailwind utilities;[39m
+[33m[lightningcss minify] Unknown at rule: @tailwind
+1  |  @tailwind base;
+2  |  @tailwind components;
+   |           ^
+3  |  @tailwind utilities;
+4  |   [39m
+[33m[lightningcss minify] Unknown at rule: @tailwind
+1  |  @tailwind base;
+2  |  @tailwind components;
+3  |  @tailwind utilities;
+   |           ^
+4  |   
+5  |  @layer base {[39m
+[33m[lightningcss minify] Unknown at rule: @apply
+69 |  @layer base {
+70 |    * {
+71 |      @apply border-border;
+   |            ^
+72 |    }
+73 |    body {[39m
+[33m[lightningcss minify] Unknown at rule: @apply
+72 |    }
+73 |    body {
+74 |      @apply bg-background text-foreground tracking-tight;
+   |            ^
+75 |      font-feature-settings: "rlig" 1, "calt" 1;
+76 |      -webkit-font-smoothing: antialiased;[39m
+[33m[lightningcss minify] Unknown at rule: @apply
+89 |  /* Base custom animations */
+90 |  .hover-scale {
+91 |    @apply transition-transform duration-200 active:scale-95 hover:scale-[1.02];
+   |          ^
+92 |  }
+93 |  [39m
+[31m✗[39m Build failed in 781ms
+[31merror during build:
+[31mBuild failed with 1 error:
+
+[plugin vite:esbuild-transpile]
+Error: Failed to load `transformWithEsbuild`. It is deprecated and it now requires esbuild to be installed separately. If you are a package author, please migrate to `transformWithOxc` instead.
+    at transformWithEsbuild (file:///C:/Users/Sai%20sidharth/social/frontend/node_modules/vite/dist/node/chunks/node.js:2652:9)
+    at async PluginContextImpl.renderChunk (file:///C:/Users/Sai%20sidharth/social/frontend/node_modules/vite/dist/node/chunks/node.js:2704:16)
+    at async plugin (file:///C:/Users/Sai%20sidharth/social/frontend/node_modules/rolldown/dist/shared/bindingify-input-options-DoaqRULI.mjs:1216:16)
+    at async plugin.<computed> (file:///C:/Users/Sai%20sidharth/social/frontend/node_modules/rolldown/dist/shared/bindingify-input-options-DoaqRULI.mjs:1575:12)
+Caused by:
+  Error: Cannot find package 'esbuild' imported from C:\Users\Sai sidharth\social\frontend\node_modules\vite\dist\node\chunks\node.js
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'esbuild' imported from C:\Users\Sai sidharth\social\frontend\node_modules\vite\dist\node\chunks\node.js
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:255:9)
+      at packageResolve (node:internal/modules/esm/resolve:767:81)
+      at moduleResolve (node:internal/modules/esm/resolve:853:18)
+      at defaultResolve (node:internal/modules/esm/resolve:983:11)
+      at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:783:12)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:707:25)
+      at ModuleLoader.resolve (node:internal/modules/esm/loader:690:38)
+      at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:307:38)
+      at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:646:36)
+      at TracingChannel.tracePromise (node:diagnostics_channel:344:14)[31m
+    at aggregateBindingErrorsIntoJsError (file:///C:/Users/Sai%20sidharth/social/frontend/node_modules/rolldown/dist/shared/error-BO4SlZV_.mjs:48:18)
+    at unwrapBindingResult (file:///C:/Users/Sai%20sidharth/social/frontend/node_modules/rolldown/dist/shared/error-BO4SlZV_.mjs:18:128)
+    at #build (file:///C:/Users/Sai%20sidharth/social/frontend/node_modules/rolldown/dist/shared/rolldown-build-yQC7KN8K.mjs:3311:34)
+    at async buildEnvironment (file:///C:/Users/Sai%20sidharth/social/frontend/node_modules/vite/dist/node/chunks/node.js:32817:64)
+    at async Object.build (file:///C:/Users/Sai%20sidharth/social/frontend/node_modules/vite/dist/node/chunks/node.js:33239:19)
+    at async Object.buildApp (file:///C:/Users/Sai%20sidharth/social/frontend/node_modules/vite/dist/node/chunks/node.js:33236:153)
+    at async CAC.<anonymous> (file:///C:/Users/Sai%20sidharth/social/frontend/node_modules/vite/dist/node/cli.js:778:3) {
+  errors: [Getter/Setter]
+}[39m

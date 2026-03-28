@@ -1,0 +1,10 @@
+{
+  "name": "connectsphere-fullstack",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npx concurrently -k -c \"bgBlue.bold,bgMagenta.bold\" -n \"DJANGO,VITE\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd socialproject && ..\\social\\Scripts\\python.exe manage.py runserver",
+    "dev:frontend": "cd frontend && npm run dev"
+  }
+}
