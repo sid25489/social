@@ -16,10 +16,12 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenObtainPairView
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Prefetch
 from django.shortcuts import get_object_or_404
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.exceptions import PermissionDenied
 
 from .models import (
     User, UserProfile, Post, Comment, Like, Follow, FollowRequest,
@@ -89,6 +91,11 @@ class UserViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['username', 'profile__display_name']
     
+    def get_permissions(self):
+        if self.action in ('retrieve', 'by_username'):
+            return [AllowAny()]
+        return super().get_permissions()
+    
     def get_serializer_class(self):
         if self.action == 'retrieve':
             return UserProfileSerializer
@@ -96,6 +103,56 @@ class UserViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         return User.objects.filter(is_deleted=False).select_related('profile')
+    
+    def retrieve(self, request, *args, **kwargs):
+        user = self.get_object()
+        profile = user.profile
+        perm = CanViewProfile()
+        if not perm.has_object_permission(request, self, profile):
+            raise PermissionDenied('You cannot view this profile.')
+        serializer = UserProfileSerializer(profile, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], url_path=r'by-username/(?P<username>[^/.]+)')
+    def by_username(self, request, username=None):
+        user = get_object_or_404(
+            User.objects.select_related('profile'),
+            username__iexact=username,
+            is_deleted=False
+        )
+        profile = user.profile
+        perm = CanViewProfile()
+        if not perm.has_object_permission(request, self, profile):
+            raise PermissionDenied('You cannot view this profile.')
+        serializer = UserProfileSerializer(profile, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def change_password(self, request):
+        from django.contrib.auth.password_validation import validate_password
+        
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+        if not old_password or not new_password:
+            return Response(
+                {'detail': 'old_password and new_password are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        try:
+            validate_password(new_password, user=request.user)
+            AuthService.change_password(request.user, old_password, new_password)
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except DjangoValidationError as e:
+            return Response({'new_password': list(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'status': 'password changed'})
+    
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def blocked_accounts(self, request):
+        blocks = Block.objects.filter(blocker=request.user).select_related('blocked_user')
+        users = [b.blocked_user for b in blocks]
+        serializer = UserListSerializer(users, many=True, context={'request': request})
+        return Response(serializer.data)
     
     @action(detail=False, methods=['get'])
     def me(self, request):
@@ -178,6 +235,7 @@ class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostListSerializer
     permission_classes = [IsAuthenticated, IsNotBlocked]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['author']
     ordering_fields = ['created_at', 'likes_count']
     pagination_class = None
     

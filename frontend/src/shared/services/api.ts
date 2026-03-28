@@ -1,9 +1,10 @@
-import axios, { AxiosError } from 'axios';
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../../store/useAuthStore';
 
-// Define the baseURL for Axios based on environment
+const baseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
+  baseURL,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
@@ -13,7 +14,7 @@ export const api = axios.create({
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (value?: unknown) => void;
-  reject: (reason?: any) => void;
+  reject: (reason?: unknown) => void;
 }> = [];
 
 const processQueue = (error: AxiosError | null, token: string | null = null) => {
@@ -27,7 +28,6 @@ const processQueue = (error: AxiosError | null, token: string | null = null) => 
   failedQueue = [];
 };
 
-// Request interceptor to attach JWT
 api.interceptors.request.use(
   (config) => {
     const token = useAuthStore.getState().token;
@@ -39,37 +39,36 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling and token refresh
 api.interceptors.response.use(
-  (response) => {
-    // Return direct data if present, or whole response
-    return response.data;
-  },
+  (response) => response.data,
   async (error: AxiosError) => {
-    const originalRequest = error.config;
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // Reject immediately if no config or not a 401
     if (!originalRequest || error.response?.status !== 401) {
       return Promise.reject(error);
     }
 
-    // Prevent infinite loop if the refresh endpoint itself throws 401
-    if (originalRequest.url?.includes('/auth/refresh')) {
+    if (originalRequest.url?.includes('/auth/token/refresh')) {
       useAuthStore.getState().logout();
       window.location.href = '/login';
       return Promise.reject(error);
     }
 
-    // @ts-ignore
     if (originalRequest._retry) {
       return Promise.reject(error);
     }
 
+    const refreshToken = useAuthStore.getState().refreshToken;
+    if (!refreshToken) {
+      useAuthStore.getState().logout();
+      window.location.href = '/login';
+      return Promise.reject(error);
+    }
+
     if (isRefreshing) {
-      // If we are already refreshing, push next requests to queue
       try {
-        const token = await new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
+        const token = await new Promise<string>((resolve, reject) => {
+          failedQueue.push({ resolve: resolve as (v?: unknown) => void, reject });
         });
         originalRequest.headers.Authorization = `Bearer ${token}`;
         return api(originalRequest);
@@ -78,27 +77,20 @@ api.interceptors.response.use(
       }
     }
 
-    // @ts-ignore
     originalRequest._retry = true;
     isRefreshing = true;
 
     try {
-      // Implement silent refresh logic here
-      // const { data } = await axios.post('/api/v1/auth/refresh');
-      // const newToken = data.access_token;
-      
-      // For now, if 401 occurs and refresh is mocked to fail, we logout
-      const newToken = null; // REPLACE WITH REAL REFRESH
-      
-      if (!newToken) {
-        throw new Error('Refresh failed');
-      }
-
-      // useAuthStore.getState().setAuth(useAuthStore.getState().user!, newToken);
-      // api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-      
-      // processQueue(null, newToken);
-      // return api(originalRequest);
+      const { data } = await axios.post<{ access: string; refresh?: string }>(
+        `${baseURL}/auth/token/refresh/`,
+        { refresh: refreshToken }
+      );
+      const newAccess = data.access;
+      const newRefresh = data.refresh ?? refreshToken;
+      useAuthStore.getState().setTokens(newAccess, newRefresh);
+      processQueue(null, newAccess);
+      originalRequest.headers.Authorization = `Bearer ${newAccess}`;
+      return api(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError as AxiosError, null);
       useAuthStore.getState().logout();

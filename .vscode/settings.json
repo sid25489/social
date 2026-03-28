@@ -4,7 +4,7 @@
         "c:\\Users\\Sai sidharth\\social\\socialproject"
     ],
     "python.interpreter.infoVisibility": "always",
-    "python.languageServer": "Pylance",
+    "python.languageServer": "None",
     "python.analysis.typeCheckingMode": "basic",
     "python-envs.defaultEnvManager": "ms-python.python:venv",
     "python-envs.workspaceSearchPaths": [

@@ -1,20 +1,26 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-interface User {
+export interface User {
   id: string;
   username: string;
   avatar?: string;
   bio?: string;
+  displayName?: string;
   followersCount: number;
   followingCount: number;
+  postsCount?: number;
+  isPrivate?: boolean;
 }
 
 interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
-  setAuth: (user: User, token: string) => void;
+  setTokens: (access: string, refresh: string) => void;
+  setAuth: (user: User | null, token: string, refresh?: string | null) => void;
+  setUser: (user: User) => void;
   updateUser: (data: Partial<User>) => void;
   logout: () => void;
 }
@@ -24,14 +30,36 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       token: null,
+      refreshToken: null,
       isAuthenticated: false,
-      setAuth: (user, token) => set({ user, token, isAuthenticated: true }),
+      setTokens: (access, refresh) =>
+        set({ token: access, refreshToken: refresh, isAuthenticated: true }),
+      setAuth: (user, token, refresh) =>
+        set({
+          user,
+          token,
+          refreshToken: refresh ?? null,
+          isAuthenticated: !!token,
+        }),
+      setUser: (user) => set({ user, isAuthenticated: true }),
       updateUser: (data) =>
         set((state) => ({ user: state.user ? { ...state.user, ...data } : null })),
-      logout: () => set({ user: null, token: null, isAuthenticated: false }),
+      logout: () =>
+        set({
+          user: null,
+          token: null,
+          refreshToken: null,
+          isAuthenticated: false,
+        }),
     }),
     {
       name: 'connectsphere-auth',
+      partialize: (s) => ({
+        user: s.user,
+        token: s.token,
+        refreshToken: s.refreshToken,
+        isAuthenticated: s.isAuthenticated,
+      }),
     }
   )
 );
