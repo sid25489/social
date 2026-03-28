@@ -1,5 +1,5 @@
 """
-Celery Tasks
+Celery Tasks with Graceful Degradation
 
 Async task processing:
 - Email sending
@@ -7,6 +7,11 @@ Async task processing:
 - Feed aggregation
 - Cleanup jobs
 - GDPR compliance
+
+When Celery/Redis is unavailable:
+- Tasks run synchronously in the request cycle
+- No retries are performed
+- Errors are logged but don't break the application
 """
 
 from django.db.models import Count
@@ -17,11 +22,24 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Check if Celery is enabled
+CELERY_ENABLED = getattr(settings, 'CELERY_ENABLED', False)
+
 # Task retry configuration
 TASK_RETRY_KWARGS = {
     'max_retries': 3,
     'default_retry_delay': 60,  # 1 minute
 }
+
+
+def handle_task_error(task_name, exc):
+    """Centralized error handling for tasks"""
+    logger.error(f'Task "{task_name}" failed: {exc}')
+    if not CELERY_ENABLED:
+        # In degraded mode, log but don't raise - allow app to continue
+        logger.warning(f'Running in degraded mode without Celery. Task "{task_name}" executed synchronously.')
+        return None
+    raise exc
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
@@ -41,7 +59,9 @@ def send_verification_email_task(self, user_id):
         logger.info(f'Verification email sent to {user.email}')
     except Exception as exc:
         logger.error(f'Failed to send verification email: {exc}')
-        raise self.retry(exc=exc, countdown=60)
+        if CELERY_ENABLED:
+            raise self.retry(exc=exc, countdown=60)
+        # In degraded mode, just log the error and continue
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
@@ -61,7 +81,9 @@ def send_password_reset_task(self, user_id, reset_token):
         logger.info(f'Password reset email sent to {user.email}')
     except Exception as exc:
         logger.error(f'Failed to send password reset email: {exc}')
-        raise self.retry(exc=exc, countdown=60)
+        if CELERY_ENABLED:
+            raise self.retry(exc=exc, countdown=60)
+        # In degraded mode, just log the error and continue
 
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=60)
@@ -93,7 +115,9 @@ def send_notification_digest_task(self, user_id):
             logger.info(f'Notification digest sent to {user.email}')
     except Exception as exc:
         logger.error(f'Failed to send notification digest: {exc}')
-        raise self.retry(exc=exc, countdown=60)
+        if CELERY_ENABLED:
+            raise self.retry(exc=exc, countdown=60)
+        # In degraded mode, just log the error and continue
 
 
 @shared_task

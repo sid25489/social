@@ -205,9 +205,18 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
-# Celery Configuration
-CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+# Celery Configuration with Graceful Degradation
+# When Redis/Celery is unavailable, tasks run synchronously
+CELERY_ENABLED = os.getenv('CELERY_ENABLED', 'False') == 'True'
+
+if CELERY_ENABLED:
+    CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+    CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+else:
+    # Use in-memory broker/backend when Celery is disabled
+    CELERY_BROKER_URL = 'memory://'
+    CELERY_RESULT_BACKEND = 'cache+memory://'
+    
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -215,35 +224,55 @@ CELERY_TIMEZONE = 'UTC'
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes (soft limit)
+CELERY_TASK_ALWAYS_EAGER = not CELERY_ENABLED  # Run tasks synchronously when Celery disabled
+CELERY_TASK_EAGER_PROPAGATES = True
 
-# Celery Beat Schedule (Periodic Tasks)
-CELERY_BEAT_SCHEDULE = {
-    'aggregate-trending-hashtags': {
-        'task': 'socialapp.tasks.aggregate_trending_hashtags_task',
-        'schedule': 60 * 60,  # Every hour
-    },
-    'cleanup-old-notifications': {
-        'task': 'socialapp.tasks.cleanup_old_notifications_task',
-        'schedule': 24 * 60 * 60,  # Every 24 hours
-    },
-    'cleanup-old-messages': {
-        'task': 'socialapp.tasks.cleanup_old_messages_task',
-        'schedule': 24 * 60 * 60,  # Every 24 hours
-    },
-}
+# Celery Beat Schedule (Periodic Tasks) - Disabled when Celery unavailable
+if CELERY_ENABLED:
+    CELERY_BEAT_SCHEDULE = {
+        'aggregate-trending-hashtags': {
+            'task': 'socialapp.tasks.aggregate_trending_hashtags_task',
+            'schedule': 60 * 60,  # Every hour
+        },
+        'cleanup-old-notifications': {
+            'task': 'socialapp.tasks.cleanup_old_notifications_task',
+            'schedule': 24 * 60 * 60,  # Every 24 hours
+        },
+        'cleanup-old-messages': {
+            'task': 'socialapp.tasks.cleanup_old_messages_task',
+            'schedule': 24 * 60 * 60,  # Every 24 hours
+        },
+    }
+else:
+    CELERY_BEAT_SCHEDULE = {}  # No periodic tasks when Celery disabled
 
-# Redis Configuration (Caching)
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': os.getenv('REDIS_URL', 'redis://localhost:6379/1'),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'PARSER_KWARGS': {'encoding': 'utf8'},
-            'POOL_KWARGS': {'max_connections': 50},
+# Redis Configuration (Caching) with Fallback
+REDIS_ENABLED = os.getenv('REDIS_ENABLED', 'False') == 'True'
+
+if REDIS_ENABLED:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': os.getenv('REDIS_URL', 'redis://localhost:6379/1'),
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'PARSER_KWARGS': {'encoding': 'utf8'},
+                'POOL_KWARGS': {'max_connections': 50},
+                'IGNORE_EXCEPTIONS': True,  # Gracefully degrade on connection errors
+            },
+            'KEY_PREFIX': 'connectsphere',
+            'TIMEOUT': 300,
         }
     }
-}
+else:
+    # Use local memory cache as fallback
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'connectsphere-local-cache',
+            'TIMEOUT': 300,
+        }
+    }
 
 # Email Configuration (For development)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
