@@ -10,5 +10,6 @@
     "python-envs.workspaceSearchPaths": [
         "./**/.venv",
         "c:\\Users\\Sai sidharth\\social"
-    ]
+    ],
+    "css.lint.unknownAtRules": "ignore"
 }

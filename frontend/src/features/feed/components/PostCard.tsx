@@ -76,12 +76,12 @@ export const PostCard = React.forwardRef<HTMLDivElement, PostCardProps>(({ post,
         else if (ref) ref.current = node;
         if (registerRef) registerRef(node);
       }}
-      className="bg-card border-b border-border sm:border sm:rounded-2xl mb-4 shadow-sm overflow-hidden text-card-foreground"
+      className="bg-card border-b border-border/50 sm:border sm:border-border sm:rounded-md mb-2 sm:mb-6 overflow-hidden text-card-foreground"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4">
+      <div className="flex items-center justify-between p-3 sm:p-4">
         <div className="flex items-center gap-3 cursor-pointer group">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-yellow-400 to-primary p-[2px]">
+          <div className="h-10 w-10 rounded-full bg-ig-gradient p-[2px]">
             <img 
               src={post.author.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author.username}`} 
               alt={post.author.username}
@@ -89,18 +89,18 @@ export const PostCard = React.forwardRef<HTMLDivElement, PostCardProps>(({ post,
             />
           </div>
           <div>
-            <h4 className="font-semibold text-sm group-hover:underline">{post.author.username}</h4>
+            <h4 className="font-semibold text-sm hover:text-muted-foreground">{post.author.username}</h4>
             <span className="text-xs text-muted-foreground">{new Date(post.createdAt).toLocaleDateString()}</span>
           </div>
         </div>
-        <button className="text-muted-foreground hover:bg-accent rounded-full p-2 hover:text-foreground transition-colors">
+        <button className="text-muted-foreground hover:text-foreground transition-colors px-1">
           <MoreHorizontal className="h-5 w-5" />
         </button>
       </div>
 
       {/* Media / Content */}
       <div 
-        className="w-full relative bg-accent/30 cursor-pointer overflow-hidden min-h-[300px] flex items-center justify-center"
+        className="w-full relative bg-accent/10 cursor-pointer overflow-hidden min-h-[300px] flex items-center justify-center border-y border-border/20 sm:border-none"
         onDoubleClick={handleDoubleClick}
       >
         {post.mediaUrl ? (
@@ -108,11 +108,11 @@ export const PostCard = React.forwardRef<HTMLDivElement, PostCardProps>(({ post,
             src={post.mediaUrl} 
             alt="Post content" 
             className="w-full max-h-[600px] object-cover bg-background"
-            style={{ aspectRatio: "4/5" }} // Prevents severe layout shifts during virtualization rendering
+            style={{ aspectRatio: "4/5" }}
             loading="lazy"
           />
         ) : (
-          <div className="p-8 text-xl sm:text-2xl font-medium leading-relaxed break-words w-full">
+          <div className="p-8 text-xl sm:text-2xl font-medium leading-relaxed break-words w-full text-center">
             {post.content}
           </div>
         )}
@@ -134,12 +134,12 @@ export const PostCard = React.forwardRef<HTMLDivElement, PostCardProps>(({ post,
       </div>
 
       {/* Actions */}
-      <div className="p-4 pt-3 flex flex-col gap-3">
+      <div className="p-3 sm:p-4 flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button 
               onClick={handleLike}
-              className="transition-transform active:scale-75 hover:opacity-80 disabled:opacity-50 group flex items-center gap-1.5"
+              className="transition-transform active:scale-50 hover:opacity-80 disabled:opacity-50 group flex items-center"
               disabled={mutation.isPending}
             >
               <motion.div
@@ -147,30 +147,33 @@ export const PostCard = React.forwardRef<HTMLDivElement, PostCardProps>(({ post,
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
               >
                 <Heart 
+                  strokeWidth={post.isLikedByMe ? 0 : 1.5}
                   className={cn(
                     "w-[26px] h-[26px] transition-colors", 
                     post.isLikedByMe ? "fill-destructive text-destructive" : "text-foreground group-hover:text-muted-foreground"
                   )} 
                 />
               </motion.div>
-              <span className="text-sm font-semibold selection:bg-transparent">{post.likesCount}</span>
             </button>
-            <button className="transition-transform active:scale-90 hover:opacity-80 group flex items-center gap-1.5 text-foreground hover:text-muted-foreground">
-              <MessageCircle className="w-[26px] h-[26px]" />
-              <span className="text-sm font-semibold">{post.commentsCount}</span>
+            <button className="transition-transform active:scale-90 hover:opacity-80 group flex items-center text-foreground hover:text-muted-foreground">
+              <MessageCircle strokeWidth={1.5} className="w-[26px] h-[26px]" />
             </button>
-            <button className="transition-transform active:scale-90 hover:opacity-80 group text-foreground hover:text-muted-foreground">
-              <Share2 className="w-[26px] h-[26px]" />
+            <button className="transition-transform active:scale-90 hover:opacity-80 group text-foreground hover:text-muted-foreground mr-1">
+              <Share2 strokeWidth={1.5} className="w-[26px] h-[26px]" />
             </button>
           </div>
           <button className="transition-transform active:scale-90 hover:opacity-80 text-foreground">
-            <Bookmark className="w-[26px] h-[26px]" />
+            <Bookmark strokeWidth={1.5} className="w-[26px] h-[26px]" />
           </button>
         </div>
         
+        <div className="font-semibold text-sm px-1 py-1">
+          {post.likesCount.toLocaleString()} {post.likesCount === 1 ? 'like' : 'likes'}
+        </div>
+
         {/* Caption */}
         {post.mediaUrl && (
-          <div className="text-sm">
+          <div className="text-sm px-1">
             <span className="font-semibold mr-2">{post.author.username}</span>
             <span>{post.content}</span>
           </div>
@@ -178,7 +181,7 @@ export const PostCard = React.forwardRef<HTMLDivElement, PostCardProps>(({ post,
         
         {/* Comments count */}
         {post.commentsCount > 0 && (
-          <button className="text-muted-foreground text-sm font-medium self-start hover:text-foreground">
+          <button className="text-muted-foreground text-sm font-medium self-start hover:text-foreground px-1 py-1">
             View all {post.commentsCount} comments
           </button>
         )}
